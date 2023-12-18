@@ -7,7 +7,7 @@ with open('requirements.txt', 'r', encoding='utf-8') as fh:
     install_requires = fh.read().splitlines()
 
 setup(
-    name='Akkis Time-Series-Library',
+    name='tslib',
     version='0.1.0',
     author='Akki',
     author_email='me@akki.jp',
