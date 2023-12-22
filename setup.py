@@ -8,7 +8,7 @@ with open('requirements.txt', 'r', encoding='utf-8') as fh:
 
 setup(
     name='tslib',
-    version='0.1.1',
+    version='0.1.2',
     author='Akki',
     author_email='me@akki.jp',
     packages=find_packages(),
