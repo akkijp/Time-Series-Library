@@ -8,6 +8,9 @@ from layers.Conv_Blocks import Inception_Block_V1
 
 def FFT_for_Period(x, k=2):
     # [B, T, C]
+    # B: batch size(バッチサイズ)
+    # T: sequence length(時間ステップ数)
+    # C: feature dimension(チャンネル数)
     xf = torch.fft.rfft(x, dim=1)
     # find period by amplitudes
     frequency_list = abs(xf).mean(0).mean(-1)
