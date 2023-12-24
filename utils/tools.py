@@ -39,14 +39,18 @@ class EarlyStopping:
 
     def __call__(self, val_loss, model, path):
         score = -val_loss
+        # self.best_scoreがNoneの場合、初期スコアとして設定し、チェックポイントを保存します
         if self.best_score is None:
             self.best_score = score
             self.save_checkpoint(val_loss, model, path)
+        # スコアがbest_score + deltaより小さい場合、カウンターを増やします
         elif score < self.best_score + self.delta:
             self.counter += 1
             print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+            # カウンターがpatience以上になったら、早期終了フラグを立てます
             if self.counter >= self.patience:
                 self.early_stop = True
+        # スコアが改善された場合、best_scoreを更新し、チェックポイントを保存し、カウンターをリセットします
         else:
             self.best_score = score
             self.save_checkpoint(val_loss, model, path)
