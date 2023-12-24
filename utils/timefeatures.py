@@ -121,6 +121,8 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
         ],
     }
 
+    # freq_strからpandasのoffsetオブジェクトを生成する
+    # これにより、与えられた頻度文字列に基づいた時間的なオフセットを取得できる
     offset = to_offset(freq_str)
 
     for offset_type, feature_classes in features_by_offsets.items():

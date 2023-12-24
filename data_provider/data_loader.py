@@ -109,11 +109,13 @@ class Dataset_ETT_minute(Dataset):
                  target='OT', scale=True, timeenc=0, freq='t', seasonal_patterns=None):
         # size [seq_len, label_len, pred_len]
         # info
-        if size == None:
-            self.seq_len = 24 * 4 * 4
-            self.label_len = 24 * 4
-            self.pred_len = 24 * 4
+        # sizeパラメータがNoneの場合、デフォルトのシーケンス長、ラベル長、予測長を設定します
+        if size is None:
+            self.seq_len = 24 * 4 * 4  # 1日を4分割したデータの4日分
+            self.label_len = 24 * 4    # 1日分のデータ
+            self.pred_len = 24 * 4     # 1日分のデータを予測
         else:
+            # sizeパラメータが指定されている場合、その値を使用してシーケンス長、ラベル長、予測長を設定します
             self.seq_len = size[0]
             self.label_len = size[1]
             self.pred_len = size[2]
@@ -122,10 +124,15 @@ class Dataset_ETT_minute(Dataset):
         type_map = {'train': 0, 'val': 1, 'test': 2}
         self.set_type = type_map[flag]
 
+        # 特徴量の種類を設定します。'S'は単一の特徴量、'M'は複数の特徴量を意味します。
         self.features = features
+        # 予測対象の特徴量を設定します。
         self.target = target
+        # データのスケーリングを行うかどうかのフラグです。Trueの場合、スケーリングを行います。
         self.scale = scale
+        # 時間エンコーディングのタイプを設定します。0は時間関連の特徴量を使わない、1は使う。
         self.timeenc = timeenc
+        # データの頻度を設定します。例えば、't'は分単位を意味します。
         self.freq = freq
 
         self.root_path = root_path
@@ -137,40 +144,95 @@ class Dataset_ETT_minute(Dataset):
         df_raw = pd.read_csv(os.path.join(self.root_path,
                                           self.data_path))
 
-        border1s = [0, 12 * 30 * 24 * 4 - self.seq_len, 12 * 30 * 24 * 4 + 4 * 30 * 24 * 4 - self.seq_len]
-        border2s = [12 * 30 * 24 * 4, 12 * 30 * 24 * 4 + 4 * 30 * 24 * 4, 12 * 30 * 24 * 4 + 8 * 30 * 24 * 4]
+        # border1sとborder2sはデータセットの分割点を定義するリストです。
+        # border1sは訓練、検証、テストセットの開始点をそれぞれ定義します。
+        # border2sは訓練、検証、テストセットの終了点をそれぞれ定義します。
+        # ここでは、1日を4分割したデータを想定しており、それぞれのセットの長さを計算しています。
+        # 1日を4分割すると、1つのセグメントは6時間を表します。したがって、border1sとborder2sの値は、
+        # それぞれのセットが開始および終了する6時間セグメントのインデックスを表しています。
+
+        # 概念図
+        # |<------------------- 12 months ------------------->|<-- 4 months -->|<-- 4 months -->|
+        # 0                                                    A               B               C
+        # |-------------------- train ------------------------|----- val ------|---- test ------|
+        # A = 12 * 30 * 24 * 4 - seq_len (Training set starts)
+        # B = A + 4 * 30 * 24 * 4 (Validation set starts)
+        # C = B + 4 * 30 * 24 * 4 (Test set starts)
+
+        border1s = [
+            0, # 訓練セットの開始点
+            12 * 30 * 24 * 4 - self.seq_len, # 検証セットの開始点
+            12 * 30 * 24 * 4 + 4 * 30 * 24 * 4 - self.seq_len # テストセットの開始点
+        ]
+        border2s = [
+            12 * 30 * 24 * 4, # 訓練セットの終了点
+            12 * 30 * 24 * 4 + 4 * 30 * 24 * 4, # 検証セットの終了点
+            12 * 30 * 24 * 4 + 8 * 30 * 24 * 4 # テストセットの終了点
+        ]
+        # self.set_typeに基づいて、現在のセットタイプ（訓練、検証、テスト）の開始点と終了点を選択します。
         border1 = border1s[self.set_type]
         border2 = border2s[self.set_type]
 
+
+        # 特徴量の選択を行います。'M'または'MS'が指定された場合は複数の特徴量を選択し、
+        # 'S'が指定された場合は単一の特徴量を選択します。
         if self.features == 'M' or self.features == 'MS':
+            # df_rawから最初の列を除いたすべての列を選択します
             cols_data = df_raw.columns[1:]
+            # 選択した列のデータをdf_dataに格納します
             df_data = df_raw[cols_data]
         elif self.features == 'S':
+            # df_rawから予測対象の列のみを選択してdf_dataに格納します
             df_data = df_raw[[self.target]]
 
+        # スケーリングが有効な場合、訓練データに基づいてスケーラーをフィットさせ、
+        # その後、すべてのデータを変換します。
         if self.scale:
+            # 訓練セットのデータを取得
             train_data = df_data[border1s[0]:border2s[0]]
+            # スケーラーに訓練データをフィットさせる
             self.scaler.fit(train_data.values)
+            # df_dataの値をスケーリング
             data = self.scaler.transform(df_data.values)
         else:
+            # スケーリングが無効な場合、データの値をそのまま使用
             data = df_data.values
 
+        # df_stampは、日付データを含むデータフレームです。border1とborder2の範囲で日付データを選択します。
         df_stamp = df_raw[['date']][border1:border2]
+        # 日付データをdatetimeオブジェクトに変換します。
         df_stamp['date'] = pd.to_datetime(df_stamp.date)
+        # timeencが0の場合、日付から追加の時間特徴量を抽出します。
+        # timeencとは？: 時間エンコーディングのタイプを設定します。0は時間関連の特徴量を使わない、1は使う。
         if self.timeenc == 0:
+            # 月を抽出します。
             df_stamp['month'] = df_stamp.date.apply(lambda row: row.month, 1)
+            # 日を抽出します。
             df_stamp['day'] = df_stamp.date.apply(lambda row: row.day, 1)
+            # 曜日を抽出します（月曜日=0, 日曜日=6）。
             df_stamp['weekday'] = df_stamp.date.apply(lambda row: row.weekday(), 1)
+            # 時間を抽出します。
             df_stamp['hour'] = df_stamp.date.apply(lambda row: row.hour, 1)
+            # 分を抽出し、15分ごとのインデックス（0から3）に変換します。
             df_stamp['minute'] = df_stamp.date.apply(lambda row: row.minute, 1)
             df_stamp['minute'] = df_stamp.minute.map(lambda x: x // 15)
+            # 日付列を除外し、抽出した特徴量のみのnumpy配列を作成します。
             data_stamp = df_stamp.drop(['date'], 1).values
+        # timeencが1の場合、time_features関数を使用して時間特徴量を生成します。
         elif self.timeenc == 1:
+            # time_features関数を使用して時間特徴量を生成し、freqパラメータに基づいて適切な頻度で特徴量を抽出します。
             data_stamp = time_features(pd.to_datetime(df_stamp['date'].values), freq=self.freq)
+            # 特徴量の次元を変換します（特徴量が列になるように）。
             data_stamp = data_stamp.transpose(1, 0)
 
+        # self.data_xには、モデルの入力として使用する特徴量データを格納します。
+        # border1からborder2までの範囲でデータを選択します。
         self.data_x = data[border1:border2]
+        # self.data_yには、モデルが予測するべきターゲットデータを格納します。
+        # こちらもborder1からborder2までの範囲でデータを選択します。
         self.data_y = data[border1:border2]
+        # self.data_stampには、時間特徴量データを格納します。
+        # このデータは、モデルが時間的なコンテキストを理解するのに役立ちます。
         self.data_stamp = data_stamp
 
     def __getitem__(self, index):
