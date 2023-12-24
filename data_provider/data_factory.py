@@ -25,7 +25,6 @@ def data_provider(args, flag):
     # time features encoding, options:[timeF, fixed, learned]
     # timeFとは、時系列データの特徴量を時刻に関する特徴量に変換するためのもの
     timeenc = 0 if args.embed != 'timeF' else 1
-    
 
     print(flag, args.task_name)
 
