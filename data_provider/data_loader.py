@@ -223,6 +223,13 @@ class Dataset_ETT_minute(Dataset):
             # time_features関数を使用して時間特徴量を生成し、freqパラメータに基づいて適切な頻度で特徴量を抽出します。
             data_stamp = time_features(pd.to_datetime(df_stamp['date'].values), freq=self.freq)
             # 特徴量の次元を変換します（特徴量が列になるように）。
+            # 例えば、freq='t'の場合、time_features関数は、
+            # 1つの時系列データに対して、[年、月、日、曜日、時間、分]の6つの特徴量を生成します。
+            # この場合、data_stampは[6, N]の形状を持ちます。
+            # しかし、このデータをモデルに入力するためには、[N, 6]の形状に変換する必要があります。
+            # そのため、transpose関数を使用して、data_stampの形状を[6, N]から[N, 6]に変換します。
+            # 第1引数の1は、転置する軸を指定します。この場合、1は2番目の軸を指定します。
+            # 第2引数の0は、転置後の軸の順序を指定します。この場合、0は最初の軸を指定します。
             data_stamp = data_stamp.transpose(1, 0)
 
         # self.data_xには、モデルの入力として使用する特徴量データを格納します。

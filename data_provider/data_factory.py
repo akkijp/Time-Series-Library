@@ -90,8 +90,9 @@ def data_provider(args, flag):
         print(flag, len(data_set))
         data_loader = DataLoader(
             data_set,
-            batch_size=batch_size,
-            shuffle=shuffle_flag,
-            num_workers=args.num_workers,
-            drop_last=drop_last)
+            batch_size=batch_size, # バッチサイズ
+            shuffle=shuffle_flag, # データをシャッフルするかどうか
+            num_workers=args.num_workers, # データローダーの並列数
+            drop_last=drop_last # データ数がbatch_sizeで割り切れない場合に最後のバッチを捨てるかどうか
+        )
         return data_set, data_loader
